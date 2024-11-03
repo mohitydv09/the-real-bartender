@@ -1,0 +1,3 @@
+[submodule "Spark"]
+	path = Spark
+	url = https://github.com/RPM-lab-UMN/Spark.git
