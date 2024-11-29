@@ -1,0 +1,19 @@
+# Hyperparameters
+
+prediction_horizon: 16
+observation_horizon: 16
+action_horizon: 16
+batch_size: 32
+num_workers: 4
+learning_rate: 1e-4
+weight_decay: 1e-6
+num_warmup_steps: 1000
+epochs: 100
+num_diffusion_iters: 100
+
+
+model_path: "path/to/model"
+dataset_path: "path/to/dataset"
+
+device: "cuda"
+wandb_project: "real-bartender"
