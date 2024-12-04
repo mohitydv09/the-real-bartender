@@ -1,4 +1,5 @@
 import torch
+import zarr
 import numpy as np
 
 #@markdown  - All possible segments with length `pred_horizon`
@@ -90,15 +91,23 @@ class PushTImageDataset(torch.utils.data.Dataset):
         # read from zarr dataset
         dataset_root = zarr.open(dataset_path, 'r')
 
-        # float32, [0,1], 
-        train_image_data = dataset_root['data']['img'][:]           ## (N,96,96,3)
-        train_image_data = np.moveaxis(train_image_data, -1,1)      ## (N,3,96,96)
+        # float32, [0,1], ## Needs normalized Images (N,96,96,3), I did that in the zarr file
+        train_image_front = dataset_root['data']['img_front'][:] ## (N,H,W,3)
+        train_image_thunder_wrist = dataset_root['data']['img_wrist_thunder'][:] ## (N,H,W,3)
+        train_image_lightning_wrist = dataset_root['data']['img_wrist_lightning'][:] ## (N,H,W,3)
+        # train_image_data = dataset_root['data']['img'][:]           ## (N,96,96,3)
+        # train_image_data = np.moveaxis(train_image_data, -1,1)      ## (N,3,96,96)
+
+        train_image_front = np.moveaxis(train_image_front, -1,1) ## (N,3,H,W)
+        train_image_thunder_wrist = np.moveaxis(train_image_thunder_wrist, -1,1) ## (N,3,H,W)
+        train_image_lightning_wrist = np.moveaxis(train_image_lightning_wrist, -1,1) ## (N,3,H,W)
 
         # (N, D)
         train_data = {
             # first two dims of state vector are agent (i.e. gripper) locations
-            'agent_pos': dataset_root['data']['state'][:,:2],
-            'action': dataset_root['data']['action'][:]
+            # 'agent_pos': dataset_root['data']['state'][:,:2],
+            'agent_pos': dataset_root['data']['states'][:], ## (N,14)
+            'action': dataset_root['data']['actions'][:]     ## (N,14)
         }
         episode_ends = dataset_root['meta']['episode_ends'][:]
 
@@ -108,7 +117,8 @@ class PushTImageDataset(torch.utils.data.Dataset):
             episode_ends=episode_ends,
             sequence_length=pred_horizon,
             pad_before=obs_horizon-1,
-            pad_after=action_horizon-1)
+            pad_after=action_horizon-1
+        )
 
         # compute statistics and normalized data to [-1,1]
         stats = dict()
@@ -118,7 +128,10 @@ class PushTImageDataset(torch.utils.data.Dataset):
             normalized_train_data[key] = normalize_data(data, stats[key])
 
         # images are already normalized
-        normalized_train_data['image'] = train_image_data
+        # normalized_train_data['image'] = train_image_data
+        normalized_train_data['img_front'] = train_image_front
+        normalized_train_data['img_wrist_thunder'] = train_image_thunder_wrist
+        normalized_train_data['img_wrist_lightning'] = train_image_lightning_wrist
 
         self.indices = indices
         self.stats = stats
@@ -146,20 +159,24 @@ class PushTImageDataset(torch.utils.data.Dataset):
         )
 
         # discard unused observations
-        nsample['image'] = nsample['image'][:self.obs_horizon,:]
+        nsample['img_front'] = nsample['img_front'][:self.obs_horizon,:]
+        nsample['img_wrist_thunder'] = nsample['img_wrist_thunder'][:self.obs_horizon,:]
+        nsample['img_wrist_lightning'] = nsample['img_wrist_lightning'][:self.obs_horizon,:]
         nsample['agent_pos'] = nsample['agent_pos'][:self.obs_horizon,:]
         return nsample
 
 
 if __name__ == '__main__':
     dataset = PushTImageDataset(
-        dataset_path='push/push_train.zarr',
+        dataset_path='uncork_v1.zarr',
         pred_horizon=10,
         obs_horizon=5,
         action_horizon=5
     )
-    print(len(dataset))
+    print(type(dataset[0]))
     print(dataset[0].keys())
-    print(dataset[0]['image'].shape)
+    print(dataset[0]['img_front'].shape)
+    print(dataset[0]['img_wrist_thunder'].shape)
+    print(dataset[0]['img_wrist_lightning'].shape)
     print(dataset[0]['agent_pos'].shape)
     print(dataset[0]['action'].shape)

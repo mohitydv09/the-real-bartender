@@ -13,15 +13,29 @@ from scripts.network import ConditionalUnet1D
 from scripts.vision_encoder import get_resnet, replace_bn_with_gn
 
 def forward_pass(batch, networks, noise_scheduler, device, obs_horizon):
-    nimage = batch['image'][:,:obs_horizon].to(device) ## (B, obs_horizon, H, W, C)
+    nimage_front = batch['img_front'][:,:obs_horizon].to(device) ## (B, obs_horizon, H, W, C)
+    nimage_thunder_wrist = batch['img_wrist_thunder'][:,:obs_horizon].to(device) ## (B, obs_horizon, H, W, C)
+    nimage_lightning_wrist = batch['img_wrist_lightning'][:,:obs_horizon].to(device) ## (B, obs_horizon, H, W, C)
+
+    # nimage = batch['image'][:,:obs_horizon].to(device) ## (B, obs_horizon, H, W, C)
     nagent_state = batch['agent_pos'][:,:obs_horizon].to(device) ## (B, obs_horizon, 2)
     naction = batch['action'].to(device) ## (B, action_horizon, 2)
 
-    image_features = networks['vision_encoder'](nimage.flatten(end_dim=1)) ## (B * obs_horizon, D)
-    image_features = image_features.reshape(*nimage.shape[:2], -1) ## (B, obs_horizon, D)
+    # image_features = networks['vision_encoder'](nimage.flatten(end_dim=1)) ## (B * obs_horizon, D)
+    # image_features = image_features.reshape(*nimage.shape[:2], -1) ## (B, obs_horizon, D)
 
-    obs_features = torch.cat([image_features, nagent_state], dim=-1) ## (B, obs_horizon, D + 2)
-    obs_cond = obs_features.flatten(start_dim=1) ## (B, obs_horizon * (D + 2))
+    img_front_features = networks['vision_encoder_front'](nimage_front.flatten(end_dim=1)) ## (B * obs_horizon, D)
+    img_front_features = img_front_features.reshape(*nimage_front.shape[:2], -1) ## (B, obs_horizon, D)
+
+    img_thunder_wrist_features = networks['vision_encoder_thunder_wrist'](nimage_thunder_wrist.flatten(end_dim=1)) ## (B * obs_horizon, D)
+    img_thunder_wrist_features = img_thunder_wrist_features.reshape(*nimage_thunder_wrist.shape[:2], -1) ## (B, obs_horizon, D)
+
+    img_lightning_wrist_features = networks['vision_encoder_lightning_wrist'](nimage_lightning_wrist.flatten(end_dim=1)) ## (B * obs_horizon, D)
+    img_lightning_wrist_features = img_lightning_wrist_features.reshape(*nimage_lightning_wrist.shape[:2], -1) ## (B, obs_horizon, D)
+
+    # obs_features = torch.cat([image_features, nagent_state], dim=-1) ## (B, obs_horizon, D + 2)
+    obs_features = torch.cat([img_front_features, img_thunder_wrist_features, img_lightning_wrist_features, nagent_state], dim=-1) ## (B, obs_horizon, 512 * 3 + 14)
+    obs_cond = obs_features.flatten(start_dim=1) 
 
     ## Diffusion Iteration
     B = nagent_state.shape[0]
@@ -72,7 +86,7 @@ def train(config):
     wandb.init(project=config['wandb_project'], config=config)
     config = wandb.config
 
-    ## Create Dataset and Dataloader
+    # Create Dataset and Dataloader
     dateset = PushTImageDataset(
         dataset_path=config['dataset_path'],
         pred_horizon=config['prediction_horizon'],
@@ -85,19 +99,21 @@ def train(config):
         dataset=dateset,
         batch_size=config['batch_size'],
         shuffle=True,
-        num_workers=config['num_workers'],
-        pin_memory=True,            ## Accelerate cpu-gpu transfer
-        persistent_workers=True,    ## don't kill workers after each epoch
+        # num_workers=config['num_workers'],
+        pin_memory=False,
+        persistent_workers=False
     )
 
     ## Model & Optimizer
-    vision_encoder = replace_bn_with_gn(get_resnet('resnet18'))
+    vision_encoder_front = replace_bn_with_gn(get_resnet('resnet18'))
+    vision_encoder_thunder_wrist = replace_bn_with_gn(get_resnet('resnet18'))
+    vision_encoder_lightning_wrist = replace_bn_with_gn(get_resnet('resnet18'))
 
-    ## Output of resnet18 is 512
-    vision_feature_dim = 512
-    state_dim = 2
+    ## Output of resnet18 is 512x
+    vision_feature_dim = 512 * 3
+    state_dim = 14
     observation_dim = vision_feature_dim + state_dim
-    action_dim = 2
+    action_dim = 14
 
     noise_prediction_network = ConditionalUnet1D(
         input_dim=action_dim,
@@ -105,12 +121,14 @@ def train(config):
     )
 
     networks = torch.nn.ModuleDict({
-        'vision_encoder': vision_encoder,
+        'vision_encoder_front': vision_encoder_front,
+        'vision_encoder_thunder_wrist': vision_encoder_thunder_wrist,
+        'vision_encoder_lightning_wrist': vision_encoder_lightning_wrist,
         'noise_prediction_network': noise_prediction_network
     }).to(device)
 
     ## Optimizer
-    optimizer = torch.optim.AdmaW(
+    optimizer = torch.optim.AdamW(
         params=networks.parameters(),
         lr=config['learning_rate'],
         weight_decay=config['weight_decay']
@@ -119,14 +137,14 @@ def train(config):
     lr_scheduler = get_scheduler(
         name='cosine',
         optimizer=optimizer,
-        num_warump_steps=config['num_warmup_steps'],
+        num_warmup_steps=config['num_warmup_steps'],
         num_training_steps=len(dataloader) * config['epochs']
     )
 
     ema = EMAModel(parameters=networks.parameters(), power=0.75)
     noise_scheduler = DDPMScheduler(
         num_train_timesteps=config['num_diffusion_iters'],
-        bets_schedule='squaredcos_cap_v2',
+        beta_schedule='squaredcos_cap_v2',
         clip_sample=True,
         prediction_type='epsilon',
     )
