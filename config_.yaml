@@ -11,9 +11,8 @@ num_warmup_steps: 1000
 epochs: 100
 num_diffusion_iters: 100
 
-
 model_path: "models/uncork_v1"
-dataset_path: "uncork_v1.zarr"
+dataset_path: "dataset/transformed_data/uncork_v1.zarr"
 
 device: "cuda"
 wandb_project: "real-bartender"
