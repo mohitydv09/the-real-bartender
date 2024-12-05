@@ -8,7 +8,7 @@ from diffusers.training_utils import EMAModel
 from diffusers.optimization import get_scheduler
 from diffusers.schedulers.scheduling_ddpm import DDPMScheduler
 
-from scripts.dataset import PushTImageDataset
+from scripts.dataset import BartenderDataset
 from scripts.network import ConditionalUnet1D
 from scripts.vision_encoder import get_resnet, replace_bn_with_gn
 
@@ -87,7 +87,7 @@ def train(config):
     config = wandb.config
 
     # Create Dataset and Dataloader
-    dateset = PushTImageDataset(
+    dateset = BartenderDataset(
         dataset_path=config['dataset_path'],
         pred_horizon=config['prediction_horizon'],
         obs_horizon=config['observation_horizon'],
@@ -174,7 +174,7 @@ def load_config(config_path):
     return config
 
 def main():
-    config = load_config("config.yaml")
+    config = load_config("config_.yaml")
     train(config)
 
 if __name__ == '__main__':
