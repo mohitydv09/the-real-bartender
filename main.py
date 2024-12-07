@@ -99,9 +99,9 @@ def train(config):
         dataset=dateset,
         batch_size=config['batch_size'],
         shuffle=True,
-        # num_workers=config['num_workers'],
-        pin_memory=False,
-        persistent_workers=False
+        num_workers=config['num_workers'],
+        pin_memory=True,
+        persistent_workers=True
     )
 
     ## Model & Optimizer
@@ -163,10 +163,13 @@ def train(config):
         )
         wandb.log({'epoch': epoch, 'loss': epoch_loss})
         print(f"Epoch {epoch}/{config['epochs']}, Loss: {epoch_loss}")
+        torch.save(networks.state_dict(), config['model_path'])
+        wandb.save(config['model_path'])
+        print("Model saved to ", config['model_path'])
     
-    torch.save(networks.state_dict(), config['model_path'])
-    wandb.save(config['model_path'])
-    print("Model saved to ", config['model_path'])
+    # torch.save(networks.state_dict(), config['model_path'])
+    # wandb.save(config['model_path'])
+    # print("Model saved to ", config['model_path'])
 
 def load_config(config_path):
     with open(config_path, 'r') as f:

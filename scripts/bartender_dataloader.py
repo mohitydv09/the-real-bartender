@@ -70,7 +70,7 @@ import cv2
 #         topic_folder = os.path.join(self.transformed_data_folder, topic)
 #         np.save(os.path.join(topic_folder, f'{frame_counter}.npy'), data)
 
-# Example usage:
+# # Example usage:
 # original_data_folder = '/home/rpmdt05/Code/the-real-bartender/dataset'  # Replace with your original dataset path
 # transformer = TransformData(original_data_folder)
 # print(transformer.episode_ends)
@@ -162,26 +162,26 @@ class BartenderDataset(Dataset):
 
         for index in obs_indices:
             camera_both_front.append(
-                np.load(os.path.join('transformed_dataset', 'camera_both_front', f'{index}.npy')).transpose(2, 0, 1)
+                np.load(os.path.join('/home/rpmdt05/Code/the-real-bartender/dataset/transformed_data/initial_transform', 'camera_both_front', f'{index}.npy')).transpose(2, 0, 1)
             )
             camera_lightning_wrist.append(
-                np.load(os.path.join('transformed_dataset', 'camera_lightning_wrist', f'{index}.npy')).transpose(2, 0, 1)
+                np.load(os.path.join('/home/rpmdt05/Code/the-real-bartender/dataset/transformed_data/initial_transform', 'camera_lightning_wrist', f'{index}.npy')).transpose(2, 0, 1)
             )
             camera_thunder_wrist.append(
-                np.load(os.path.join('transformed_dataset', 'camera_thunder_wrist', f'{index}.npy')).transpose(2, 0, 1)
+                np.load(os.path.join('/home/rpmdt05/Code/the-real-bartender/dataset/transformed_data/initial_transform', 'camera_thunder_wrist', f'{index}.npy')).transpose(2, 0, 1)
             )
 
-            lightning_gripper.append(np.load(os.path.join('transformed_dataset', 'lightning_gripper', f'{index}.npy')))
-            lightning_angle.append(np.load(os.path.join('transformed_dataset', 'lightning_angle', f'{index}.npy')))
+            lightning_gripper.append(np.load(os.path.join('/home/rpmdt05/Code/the-real-bartender/dataset/transformed_data/initial_transform', 'lightning_gripper', f'{index}.npy')))
+            lightning_angle.append(np.load(os.path.join('/home/rpmdt05/Code/the-real-bartender/dataset/transformed_data/initial_transform', 'lightning_angle', f'{index}.npy')))
 
             lightning_angle
 
-            thunder_gripper.append(np.load(os.path.join('transformed_dataset', 'thunder_gripper', f'{index}.npy')))
-            thunder_angle.append(np.load(os.path.join('transformed_dataset', 'thunder_angle', f'{index}.npy')))
+            thunder_gripper.append(np.load(os.path.join('/home/rpmdt05/Code/the-real-bartender/dataset/transformed_data/initial_transform', 'thunder_gripper', f'{index}.npy')))
+            thunder_angle.append(np.load(os.path.join('/home/rpmdt05/Code/the-real-bartender/dataset/transformed_data/initial_transform', 'thunder_angle', f'{index}.npy')))
 
         for index in pred_indices:
-            spark_lightning_angle.append(np.load(os.path.join('transformed_dataset', 'spark_lightning_angle', f'{index}.npy')))
-            spark_thunder_angle.append(np.load(os.path.join('transformed_dataset', 'spark_thunder_angle', f'{index}.npy')))
+            spark_lightning_angle.append(np.load(os.path.join('/home/rpmdt05/Code/the-real-bartender/dataset/transformed_data/initial_transform', 'spark_lightning_angle', f'{index}.npy')))
+            spark_thunder_angle.append(np.load(os.path.join('/home/rpmdt05/Code/the-real-bartender/dataset/transformed_data/initial_transform', 'spark_thunder_angle', f'{index}.npy')))
 
         return {
             'camera_both_front': np.array(camera_both_front),
@@ -199,7 +199,7 @@ class BartenderDataset(Dataset):
         }
 
 
-dataset_folder = '/home/rpmdt05/Code/the-real-bartender/transformed_dataset'  # Replace with your actual folder path
+dataset_folder = '/home/rpmdt05/Code/the-real-bartender/dataset/transformed_data/initial_transform'  # Replace with your actual folder path
 obs_horizon = 4  # Define the observation horizon (how many time steps to observe)
 pred_horizon = 16  # Define the prediction horizon (how many time steps to predict)
 action_horizon = 8  # Define the action horizon (this can be used if needed for future predictions)
@@ -213,7 +213,7 @@ dataset = BartenderDataset(
 )
 
 # Create a DataLoader for batching the dataset
-batch_size = 32  # Define the batch size
+batch_size = 8  # Define the batch size
 dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
 # Get and print one batch from the DataLoader
