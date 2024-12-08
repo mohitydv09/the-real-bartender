@@ -19,6 +19,50 @@ def load_config(config_path):
         config = yaml.safe_load(f)
     return config
 
+def load_network(config, device):
+    '''
+    Load the Models
+    '''
+    vision_encoder_front = replace_bn_with_gn(get_resnet('resnet18'))
+    vision_encoder_thunder_wrist = replace_bn_with_gn(get_resnet('resnet18'))
+    vision_encoder_lightning_wrist = replace_bn_with_gn(get_resnet('resnet18'))
+
+    vision_feature_dim = 512 * 3
+    state_dim = 14
+    observation_dim = vision_feature_dim + state_dim
+    action_dim = 14
+
+    noise_prediction_network = ConditionalUnet1D(
+        input_dim=action_dim,
+        global_cond_dim=observation_dim * config['observation_horizon'],
+    )
+
+    networks = torch.nn.ModuleDict({
+        'vision_encoder_front': vision_encoder_front,
+        'vision_encoder_thunder_wrist': vision_encoder_thunder_wrist,
+        'vision_encoder_lightning_wrist': vision_encoder_lightning_wrist,
+        'noise_prediction_network': noise_prediction_network
+    }).to(device)
+
+    checkpoint_path = "models/uncork_v2.pt"
+    state_dict = torch.load(checkpoint_path, map_location=device)
+    networks.load_state_dict(state_dict)
+
+    return networks
+
+
+def normalize_data(data, stats):
+    # nomalize to [0,1]
+    ndata = (data - stats['min']) / (stats['max'] - stats['min'])
+    # normalize to [-1, 1]
+    ndata = ndata * 2 - 1
+    return ndata
+
+
+def unnormalize_data(ndata, stats):
+    ndata = (ndata + 1) / 2
+    data = ndata * (stats['max'] - stats['min']) + stats['min']
+    return data
 
 
 def get_observations(stats):
@@ -41,16 +85,8 @@ def get_observations(stats):
     '''
     pass
 
-def unnormalize_data(ndata, stats):
-    ndata = (ndata + 1) / 2
-    data = ndata * (stats['max'] - stats['min']) + stats['min']
-    return data
 
-
-
-
-
-def run_inference(obs_dict, networks, noise_scheduler, config, device):
+def run_inference(obs_dict, networks, noise_scheduler, stats, config, device):
     B = 1
     pred_horizon = config['prediction_horizon']
     action_dim = config['action_dim']
@@ -103,46 +139,25 @@ def run_inference(obs_dict, networks, noise_scheduler, config, device):
 
 
 
-if __name__ == '__main__':
+def main():
 
     config = load_config('config.yaml')
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     stats = np.load("stats.npy", allow_pickle=True).item()
-
-    '''
-    Load the Models
-    '''
-    vision_encoder_front = replace_bn_with_gn(get_resnet('resnet18'))
-    vision_encoder_thunder_wrist = replace_bn_with_gn(get_resnet('resnet18'))
-    vision_encoder_lightning_wrist = replace_bn_with_gn(get_resnet('resnet18'))
-
-    vision_feature_dim = 512 * 3
-    state_dim = 14
-    observation_dim = vision_feature_dim + state_dim
-    action_dim = 14
-
-    noise_prediction_network = ConditionalUnet1D(
-        input_dim=action_dim,
-        global_cond_dim=observation_dim * config['observation_horizon'],
+    noise_scheduler = DDPMScheduler(
+        num_train_timesteps=config['num_diffusion_iters'],
+        beta_schedule='squaredcos_cap_v2',
+        clip_sample=True,
+        prediction_type='epsilon',
     )
 
-    networks = torch.nn.ModuleDict({
-        'vision_encoder_front': vision_encoder_front,
-        'vision_encoder_thunder_wrist': vision_encoder_thunder_wrist,
-        'vision_encoder_lightning_wrist': vision_encoder_lightning_wrist,
-        'noise_prediction_network': noise_prediction_network
-    }).to(device)
-
-    checkpoint_path = "models/uncork_v2.pt"
-    state_dict = torch.load(checkpoint_path, map_location=device)
-    networks.load_state_dict(state_dict)
+    networks = load_network(config, device)
 
 
     while True:
         
         obs_dict = get_observations(stats)
-
-        action = run_inference(obs_dict, networks, config, device)
+        action = run_inference(obs_dict, networks, noise_scheduler, stats, config, device)
 
         '''
         TODO: Make the robot perform the action
@@ -150,6 +165,13 @@ if __name__ == '__main__':
 
         if (): # checks if the task is completed
             break
+
+
+
+
+
+if __name__ == '__main__':
+    main()
 
 
 
