@@ -9,7 +9,8 @@ from diffusers.training_utils import EMAModel
 from diffusers.optimization import get_scheduler
 from diffusers.schedulers.scheduling_ddpm import DDPMScheduler
 
-from scripts.dataset import BartenderDataset
+# from scripts.dataset import BartenderDataset
+from scripts.dataset_2 import BartenderDatasetFull as BartenderDataset
 from scripts.network import ConditionalUnet1D
 from scripts.vision_encoder import get_resnet, replace_bn_with_gn
 
