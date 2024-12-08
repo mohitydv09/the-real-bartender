@@ -83,7 +83,7 @@ def unnormalize_data(ndata, stats):
     return data
 
 # dataset
-class BartenderDataset(torch.utils.data.Dataset):
+class BartenderDatasetFull(torch.utils.data.Dataset):
     def __init__(self,
                  dataset_path: str,
                  pred_horizon: int,
@@ -92,34 +92,30 @@ class BartenderDataset(torch.utils.data.Dataset):
 
         # read from zarr dataset
         dataset_root = zarr.open(dataset_path, 'r')
-        
-        train_image_front = np.load(f"{dataset_root}/camera_both_front.npy")
-        train_image_thunder_wrist = np.load(f"{dataset_root}/camera_thunder_wrist.npy")
-        train_image_lightning_wrist = np.load(f"{dataset_root}/camera_lightning_wrist.npy")
 
         # # float32, [0,1], ## Needs normalized Images (N,96,96,3), I did that in the zarr file
-        # train_image_front = dataset_root['data']['img_front'][:] ## (N,H,W,3)
-        # train_image_thunder_wrist = dataset_root['data']['img_wrist_thunder'][:] ## (N,H,W,3)
-        # train_image_lightning_wrist = dataset_root['data']['img_wrist_lightning'][:] ## (N,H,W,3)
-        # # train_image_data = dataset_root['data']['img'][:]           ## (N,96,96,3)
-        # # train_image_data = np.moveaxis(train_image_data, -1,1)      ## (N,3,96,96)
+        train_image_front = dataset_root['data']['img_front'][:] ## (N,H,W,3)
+        train_image_thunder_wrist = dataset_root['data']['img_wrist_thunder'][:] ## (N,H,W,3)
+        train_image_lightning_wrist = dataset_root['data']['img_wrist_lightning'][:] ## (N,H,W,3)
+        # train_image_data = dataset_root['data']['img'][:]           ## (N,96,96,3)
+        # train_image_data = np.moveaxis(train_image_data, -1,1)      ## (N,3,96,96)
 
-        # train_image_front = np.moveaxis(train_image_front, -1,1) ## (N,3,H,W)
-        # train_image_thunder_wrist = np.moveaxis(train_image_thunder_wrist, -1,1) ## (N,3,H,W)
-        # train_image_lightning_wrist = np.moveaxis(train_image_lightning_wrist, -1,1) ## (N,3,H,W)
+        train_image_front = np.moveaxis(train_image_front, -1,1) ## (N,3,H,W)
+        train_image_thunder_wrist = np.moveaxis(train_image_thunder_wrist, -1,1) ## (N,3,H,W)
+        train_image_lightning_wrist = np.moveaxis(train_image_lightning_wrist, -1,1) ## (N,3,H,W)
 
         # (N, D)
         train_data = {
             # first two dims of state vector are agent (i.e. gripper) locations
             # 'agent_pos': dataset_root['data']['state'][:,:2],
-            # 'agent_pos': dataset_root['data']['states'][:], ## (N,14)
-            # 'action': dataset_root['data']['actions'][:]     ## (N,14)
-            'agent_pos': np.load(f"{dataset_root}/state.npy"), ## (N,14)
-            'action': np.load(f"{dataset_root}/actions.npy")     ## (N,14)
+            'agent_pos': dataset_root['data']['states'][:], ## (N,14)
+            'action': dataset_root['data']['actions'][:]     ## (N,14)
+            # 'agent_pos': np.load(f"{dataset_root}/state.npy"), ## (N,14)
+            # 'action': np.load(f"{dataset_root}/actions.npy")     ## (N,14)
 
         }
-        episode_ends = np.load(f"{dataset_root}/episode_ends.npy")
-        # episode_ends = dataset_root['meta']['episode_ends'][:]
+        # episode_ends = np.load(f"{dataset_root}/episode_ends.npy")
+        episode_ends = dataset_root['meta']['episode_ends'][:]
 
         # compute start and end of each state-action sequence
         # also handles padding
@@ -193,16 +189,16 @@ class BartenderDataset(torch.utils.data.Dataset):
 
 
 if __name__ == '__main__':
-    dataset = BartenderDataset(
+    dataset = BartenderDatasetFull(
         dataset_path='../dataset/transformed_data/uncork_v2.zarr',
         pred_horizon=16,
         obs_horizon=2,
         action_horizon=8
     )
     # print(type(dataset[0]))
-    cProfile.run('dataset[0]')
-    # print(dataset[0]['img_front'].shape)
-    # print(dataset[0]['img_wrist_thunder'].shape)
-    # print(dataset[0]['img_wrist_lightning'].shape)
-    # print(dataset[0]['agent_pos'].shape)
-    # print(dataset[0]['action'].shape)
+    # cProfile.run('dataset[0]')
+    print(dataset[0]['img_front'].shape)
+    print(dataset[0]['img_wrist_thunder'].shape)
+    print(dataset[0]['img_wrist_lightning'].shape)
+    print(dataset[0]['agent_pos'].shape)
+    print(dataset[0]['action'].shape)
