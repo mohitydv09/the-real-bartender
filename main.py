@@ -1,3 +1,4 @@
+import os
 import wandb
 import torch
 import yaml
@@ -83,7 +84,7 @@ def train_epoch(dataloader,
 def train(config):
     device = config['device']
 
-    wandb.init(project=config['wandb_project'], config=config)
+    wandb.init(project=config['wandb_project'], name=config['run_name'], config=config)
     config = wandb.config
 
     # Create Dataset and Dataloader
@@ -126,6 +127,11 @@ def train(config):
         'vision_encoder_lightning_wrist': vision_encoder_lightning_wrist,
         'noise_prediction_network': noise_prediction_network
     }).to(device)
+
+    ## load pre-trained weights
+    if config['use_pretrained_model'] and os.path.exists(config['model_path']):
+        state_dict = torch.load(config['model_path'], map_location=device, weights_only=True)
+        networks.load_state_dict(state_dict)
 
     ## Optimizer
     optimizer = torch.optim.AdamW(
