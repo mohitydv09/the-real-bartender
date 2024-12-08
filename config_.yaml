@@ -16,5 +16,5 @@ model_path: "models/uncork_v2.pt"
 dataset_path: "dataset/transformed_data/uncork_v2.zarr"
 
 device: "cuda"
-wandb_project: "real-bartender"
+wandb_project: "real-bartender"a
 run_name: "uncork_v2_8_workers"

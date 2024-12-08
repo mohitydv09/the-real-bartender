@@ -48,6 +48,8 @@ def unnormalize_data(ndata, stats):
 
 
 
+
+
 def run_inference(obs_dict, networks, noise_scheduler, config, device):
     B = 1
     pred_horizon = config['prediction_horizon']
@@ -77,7 +79,7 @@ def run_inference(obs_dict, networks, noise_scheduler, config, device):
 
         for k in noise_scheduler.timesteps:
             noise_pred = networks['noise_prediction_network'](
-                noisy_action, 
+                naction, 
                 k, 
                 global_cond=obs_cond
             )
