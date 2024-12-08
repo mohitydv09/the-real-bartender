@@ -1,5 +1,4 @@
 # Hyperparameters
-
 prediction_horizon: 16
 observation_horizon: 2
 action_horizon: 8
@@ -11,8 +10,10 @@ num_warmup_steps: 500
 epochs: 100
 num_diffusion_iters: 100
 
-model_path: "models/uncork_v1"
+use_pretrained_model: True
+model_path: "models/uncork_v2.pt"
 dataset_path: "dataset/transformed_data/uncork_v2.zarr"
 
 device: "cuda"
 wandb_project: "real-bartender"
+run_name: "uncork_v2_8_workers"
