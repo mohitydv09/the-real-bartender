@@ -3,6 +3,10 @@ import torch
 import torch.nn as nn
 import torchvision
 
+""""
+This code is borrowed from the original diffusion policy codebase.
+Link: https://diffusion-policy.cs.columbia.edu/
+"""
 
 #@markdown ### **Vision Encoder**
 #@markdown

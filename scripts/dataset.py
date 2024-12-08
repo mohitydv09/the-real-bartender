@@ -1,17 +1,12 @@
-import torch
+from re import sub
 import zarr
+import torch
 import numpy as np
-import cProfile
 
-#@markdown  - All possible segments with length `pred_horizon`
-#@markdown  - Pads the beginning and the end of each episode with repetition
-#@markdown  - key `image`: shape (obs_hoirzon, 3, 96, 96)
-#@markdown  - key `agent_pos`: shape (obs_hoirzon, 2)
-#@markdown  - key `action`: shape (pred_horizon, 2)
-
-## Dataset Class
-## Load data (images, state, action)
-## Normalize data of state and action to [-1,1]
+""""
+This code is borrowed from the original diffusion policy codebase.
+Link: https://diffusion-policy.cs.columbia.edu/
+"""
 
 ## Helper Functions
 def create_sample_indices(
@@ -92,29 +87,22 @@ class BartenderDataset(torch.utils.data.Dataset):
 
         # read from zarr dataset
         dataset_root = zarr.open(dataset_path, 'r')
+        self.dataset_root = dataset_root
 
-        # # float32, [0,1], ## Needs normalized Images (N,96,96,3), I did that in the zarr file
-        train_image_front = dataset_root['data']['img_front'][:] ## (N,H,W,3)
-        train_image_thunder_wrist = dataset_root['data']['img_wrist_thunder'][:] ## (N,H,W,3)
-        train_image_lightning_wrist = dataset_root['data']['img_wrist_lightning'][:] ## (N,H,W,3)
-        # train_image_data = dataset_root['data']['img'][:]           ## (N,96,96,3)
-        # train_image_data = np.moveaxis(train_image_data, -1,1)      ## (N,3,96,96)
+        # # # float32, [0,1], ## Needs normalized Images (N,96,96,3), I did that in the zarr file
+        # train_image_front = dataset_root['data']['img_front'][:] ## (N,H,W,3)
+        # train_image_thunder_wrist = dataset_root['data']['img_wrist_thunder'][:] ## (N,H,W,3)
+        # train_image_lightning_wrist = dataset_root['data']['img_wrist_lightning'][:] ## (N,H,W,3)
 
-        train_image_front = np.moveaxis(train_image_front, -1,1) ## (N,3,H,W)
-        train_image_thunder_wrist = np.moveaxis(train_image_thunder_wrist, -1,1) ## (N,3,H,W)
-        train_image_lightning_wrist = np.moveaxis(train_image_lightning_wrist, -1,1) ## (N,3,H,W)
+        # train_image_front = np.moveaxis(train_image_front, -1,1) ## (N,3,H,W)
+        # train_image_thunder_wrist = np.moveaxis(train_image_thunder_wrist, -1,1) ## (N,3,H,W)
+        # train_image_lightning_wrist = np.moveaxis(train_image_lightning_wrist, -1,1) ## (N,3,H,W)
 
         # (N, D)
         train_data = {
-            # first two dims of state vector are agent (i.e. gripper) locations
-            # 'agent_pos': dataset_root['data']['state'][:,:2],
             'agent_pos': dataset_root['data']['states'][:], ## (N,14)
             'action': dataset_root['data']['actions'][:]     ## (N,14)
-            # 'agent_pos': np.load(f"{dataset_root}/state.npy"), ## (N,14)
-            # 'action': np.load(f"{dataset_root}/actions.npy")     ## (N,14)
-
         }
-        # episode_ends = np.load(f"{dataset_root}/episode_ends.npy")
         episode_ends = dataset_root['meta']['episode_ends'][:]
 
         # compute start and end of each state-action sequence
@@ -133,11 +121,10 @@ class BartenderDataset(torch.utils.data.Dataset):
             stats[key] = get_data_stats(data)
             normalized_train_data[key] = normalize_data(data, stats[key])
 
-        # # # images are already normalized
-        # # # normalized_train_data['image'] = train_image_data
-        normalized_train_data['img_front'] = train_image_front
-        normalized_train_data['img_wrist_thunder'] = train_image_thunder_wrist
-        normalized_train_data['img_wrist_lightning'] = train_image_lightning_wrist
+        # # Images are already normalized
+        # normalized_train_data['img_front'] = train_image_front
+        # normalized_train_data['img_wrist_thunder'] = train_image_thunder_wrist
+        # normalized_train_data['img_wrist_lightning'] = train_image_lightning_wrist
 
         self.indices = indices
         self.stats = stats
@@ -153,26 +140,22 @@ class BartenderDataset(torch.utils.data.Dataset):
         # get the start/end indices for this datapoint
         buffer_start_idx, buffer_end_idx, \
             sample_start_idx, sample_end_idx = self.indices[idx]
+
+        sub_data = dict()
+        sub_data['action'] = self.normalized_train_data['action'][buffer_start_idx:buffer_end_idx]
+        sub_data['agent_pos'] = self.normalized_train_data['agent_pos'][buffer_start_idx:buffer_end_idx]
+
+        sub_data['img_front'] = self.dataset_root['data']['img_front'][buffer_start_idx:buffer_end_idx]
+        sub_data['img_wrist_thunder'] = self.dataset_root['data']['img_wrist_thunder'][buffer_start_idx:buffer_end_idx]
+        sub_data['img_wrist_lightning'] = self.dataset_root['data']['img_wrist_lightning'][buffer_start_idx:buffer_end_idx]
         
-        ## New
-        # subset_data = dict()
-        # img_front = self.dataset_root['data']['img_front'][buffer_start_idx:buffer_end_idx]
-        # img_wrist_thunder = self.dataset_root['data']['img_wrist_thunder'][buffer_start_idx:buffer_end_idx]
-        # img_wrist_lightning = self.dataset_root['data']['img_wrist_lightning'][buffer_start_idx:buffer_end_idx]
-
-        # img_front = np.moveaxis(img_front, -1,1) ## (N,3,H,W)
-        # img_wrist_thunder = np.moveaxis(img_wrist_thunder, -1,1)
-        # img_wrist_lightning = np.moveaxis(img_wrist_lightning, -1,1)
-
-        # subset_data['img_front'] = img_front
-        # subset_data['img_wrist_thunder'] = img_wrist_thunder
-        # subset_data['img_wrist_lightning'] = img_wrist_lightning
-        # subset_data['agent_pos'] = self.normalized_train_data['agent_pos'][buffer_start_idx:buffer_end_idx]
-        # subset_data['action'] = self.normalized_train_data['action'][buffer_start_idx:buffer_end_idx]
+        sub_data['img_front'] = np.moveaxis(sub_data['img_front'], -1,1) ## (N,3,H,W)
+        sub_data['img_wrist_thunder'] = np.moveaxis(sub_data['img_wrist_thunder'], -1,1) ## (N,3,H,W)
+        sub_data['img_wrist_lightning'] = np.moveaxis(sub_data['img_wrist_lightning'], -1,1) ## (N,3,H,W)
 
         # get nomralized data using these indices
         nsample = sample_sequence(
-            train_data=self.normalized_train_data,
+            train_data=sub_data,
             sequence_length=self.pred_horizon,
             buffer_start_idx=buffer_start_idx,
             buffer_end_idx=buffer_end_idx,
@@ -189,8 +172,8 @@ class BartenderDataset(torch.utils.data.Dataset):
 
 
 if __name__ == '__main__':
-    dataset = BartenderDatasetFull(
-        dataset_path='../dataset/transformed_data/uncork_v2.zarr',
+    dataset = BartenderDataset(
+        dataset_path='dataset/transformed_data/uncork_v2.zarr',
         pred_horizon=16,
         obs_horizon=2,
         action_horizon=8
