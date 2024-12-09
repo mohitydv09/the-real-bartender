@@ -143,7 +143,7 @@ def run_inference(obs_dict, networks, noise_scheduler, stats, config, device):
 def main():
 
     config = load_config('config.yaml')
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = config['device']
     stats = np.load("stats.npy", allow_pickle=True).item()
     noise_scheduler = DDPMScheduler(
         num_train_timesteps=config['num_diffusion_iters'],
