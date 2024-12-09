@@ -1,5 +1,6 @@
 import os
-import wandb
+import sys
+import time
 import torch
 import yaml
 import numpy as np
@@ -25,6 +26,18 @@ from collections import deque
 
 import config_.yaml
 
+import rtde_io
+
+## Add the path to the teleop methods.
+sys.path.append("/home/rpmdt05/Code/the-real-bartender/Spark/TeleopMethods")
+from Spark.TeleopMethods.UR.arms import UR
+from Spark.TeleopMethods.UR.dashboard import rtde_dashboard
+from Spark.TeleopMethods.UR.gripper import RobotiqGripper
+
+ROBOT_SPEED = 0.3           ## Speed of the robot in m/s
+ROBOT_ACCELERATION = 0.3    ## Acceleration of the robot in m/s^2
+ROBOT_BLEND = 0.001          ## Blend value for the robot
+ROBOT_VELOCITY_SCALE = 1.0  
 
 def load_config(config_path):
     with open(config_path, 'r') as f:
@@ -181,6 +194,47 @@ def run_inference(obs_dict, networks, noise_scheduler, stats, config, device):
 
     return action
 
+def init_robot():
+    '''
+    Initialize the robot
+    '''
+    thunder_ip = "192.168.0.101"
+    lightning_ip = "192.168.0.102"
+    arms = ["Thunder", "Lightning"]
+    ips = [thunder_ip, lightning_ip]
+    enable_control = {
+        "Thunder": True,
+        "Lightning": True
+    }
+    URs = UR(arms, ips, enable_grippers=True)
+    lightning_io = rtde_io.RTDEIOInterface(lightning_ip)
+    thunder_io = rtde_io.RTDEIOInterface(thunder_ip)
+    lightning_io.setSpeedSlider(ROBOT_VELOCITY_SCALE)
+    thunder_io.setSpeedSlider(ROBOT_VELOCITY_SCALE)
+
+    for arm in arms:
+        URs.init_dashboard(arm)
+        URs.init_arm(arm, enable_control=enable_control)
+    return URs
+
+def perform_action(URs: UR, action: np.ndarray) -> None:
+    """
+    Perform the current action as given be the model.
+    Action is a numpy array of shape (action_horizon, action_dim).
+    """
+    movement_params = np.array([ROBOT_SPEED, ROBOT_ACCELERATION, ROBOT_BLEND])
+    lightning_actions = action[:, :6] + movement_params
+    lightning_actions[-1:-1] = 0
+    thunder_actions = action[:, 7:13] + movement_params
+    thunder_actions[-1:-1] = 0
+
+    lightning_actions = lightning_actions.tolist()
+    thunder_actions = thunder_actions.tolist()
+    lightning_grippers = action[:, 6].tolist()
+    thunder_grippers = action[:, 13].tolist()
+
+    URs.moveJ("Lightning", lightning_actions, asynchronous=True)
+    URs.moveJ("Thunder", thunder_actions, asynchronous=True)
 
 
 def main():
@@ -218,4 +272,10 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    # main()
+    actions = np.zeros((8,14))
+    actions[1,13]  = 0
+    actions[2,13]  = 5
+
+    URs = init_robot()
+    perform_action(URs, actions)
