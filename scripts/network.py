@@ -3,6 +3,11 @@ import math
 import torch
 import torch.nn as nn
 
+""""
+This code is borrowed from the original diffusion policy codebase.
+Link: https://diffusion-policy.cs.columbia.edu/
+"""
+
 #@markdown ### **Network**
 #@markdown
 #@markdown Defines a 1D UNet architecture `ConditionalUnet1D`

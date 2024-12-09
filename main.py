@@ -13,6 +13,11 @@ from scripts.dataset import BartenderDataset
 from scripts.network import ConditionalUnet1D
 from scripts.vision_encoder import get_resnet, replace_bn_with_gn
 
+""""
+This code is borrowed from the original diffusion policy codebase.
+Link: https://diffusion-policy.cs.columbia.edu/
+"""
+
 def forward_pass(batch, networks, noise_scheduler, device, obs_horizon):
     nimage_front = batch['img_front'][:,:obs_horizon].to(device) ## (B, obs_horizon, H, W, C)
     nimage_thunder_wrist = batch['img_wrist_thunder'][:,:obs_horizon].to(device) ## (B, obs_horizon, H, W, C)
@@ -21,9 +26,6 @@ def forward_pass(batch, networks, noise_scheduler, device, obs_horizon):
     # nimage = batch['image'][:,:obs_horizon].to(device) ## (B, obs_horizon, H, W, C)
     nagent_state = batch['agent_pos'][:,:obs_horizon].to(device) ## (B, obs_horizon, 2)
     naction = batch['action'].to(device) ## (B, action_horizon, 2)
-
-    # image_features = networks['vision_encoder'](nimage.flatten(end_dim=1)) ## (B * obs_horizon, D)
-    # image_features = image_features.reshape(*nimage.shape[:2], -1) ## (B, obs_horizon, D)
 
     img_front_features = networks['vision_encoder_front'](nimage_front.flatten(end_dim=1)) ## (B * obs_horizon, D)
     img_front_features = img_front_features.reshape(*nimage_front.shape[:2], -1) ## (B, obs_horizon, D)
@@ -88,16 +90,16 @@ def train(config):
     config = wandb.config
 
     # Create Dataset and Dataloader
-    dateset = BartenderDataset(
+    dataset = BartenderDataset(
         dataset_path=config['dataset_path'],
         pred_horizon=config['prediction_horizon'],
         obs_horizon=config['observation_horizon'],
         action_horizon=config['action_horizon'],
     )
-    stats = dateset.stats
+    stats = dataset.stats
 
     dataloader = torch.utils.data.DataLoader(
-        dataset=dateset,
+        dataset=dataset,
         batch_size=config['batch_size'],
         shuffle=True,
         num_workers=config['num_workers'],
@@ -132,6 +134,7 @@ def train(config):
     if config['use_pretrained_model'] and os.path.exists(config['model_path']):
         state_dict = torch.load(config['model_path'], map_location=device, weights_only=True)
         networks.load_state_dict(state_dict)
+        print("Model loaded from ", config['model_path'])
 
     ## Optimizer
     optimizer = torch.optim.AdamW(
