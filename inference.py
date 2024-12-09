@@ -4,6 +4,9 @@ import torch
 import yaml
 import numpy as np
 from tqdm import tqdm
+import numpy as np
+import time
+
 
 from diffusers.training_utils import EMAModel
 from diffusers.optimization import get_scheduler
@@ -13,6 +16,14 @@ from scripts.dataset import BartenderDataset
 from scripts.network import ConditionalUnet1D
 from scripts.vision_encoder import get_resnet, replace_bn_with_gn
 from scripts.get_observations import ObservationSubscriber
+
+import rospy
+from std_msgs.msg import Float32MultiArray 
+from std_msgs.msg import Float32
+from sensor_msgs.msg import Image
+from collections import deque
+
+import config_.yaml
 
 
 def load_config(config_path):
@@ -66,7 +77,7 @@ def unnormalize_data(ndata, stats):
     return data
 
 
-def get_observations(stats):
+def get_observations(observation_object, config, stats):
     '''
     TODO: Stream throuch the intel realsense camera, subscribe to the ros topics
     and get the observations.
@@ -84,7 +95,26 @@ def get_observations(stats):
             'agent_pos': agent_pos,
         }
     '''
-    pass
+    
+    obs_dict = observation_object.get_last_n_observations()
+
+    img_front = obs_dict['Images']['img_front']
+    img_wrist_thunder = obs_dict['Images']['img_wrist_thunder']
+    img_wrist_lightning = obs_dict['Images']['img_wrist_lightning']
+    agent_pos = obs_dict['agent_state']
+
+    # Normalize the images
+    img_front = img_front.astype(np.float32) / 255.0
+    img_wrist_thunder = img_wrist_thunder.astype(np.float32) / 255.0
+    img_wrist_lightning = img_wrist_lightning.astype(np.float32) / 255.0
+    # change image to torch and change the axis to (C, H, W)
+    img_front = torch.from_numpy(img_front).permute(0, 3, 1, 2)
+    img_wrist_thunder = torch.from_numpy(img_wrist_thunder).permute(0, 3, 1, 2)
+    img_wrist_lightning = torch.from_numpy(img_wrist_lightning).permute(0, 3, 1, 2)
+
+    # Normalize the agent state
+    agent_pos = normalize_data(agent_pos, stats = stats['agent_state'])
+
 
 
 def run_inference(obs_dict, networks, noise_scheduler, stats, config, device):
@@ -154,10 +184,14 @@ def main():
 
     networks = load_network(config, device)
 
+    observation_subscriber = ObservationSubscriber(obs_horizon=config['observation_horizon'])
+    rospy.spin()
+    time.sleep(2)
+
 
     while True:
         
-        obs_dict = get_observations(stats)
+        obs_dict = get_observations(observation_subscriber, config, stats)
         action = run_inference(obs_dict, networks, noise_scheduler, stats, config, device)
 
         '''
