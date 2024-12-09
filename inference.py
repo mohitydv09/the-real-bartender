@@ -107,13 +107,26 @@ def get_observations(observation_object, config, stats):
     img_front = img_front.astype(np.float32) / 255.0
     img_wrist_thunder = img_wrist_thunder.astype(np.float32) / 255.0
     img_wrist_lightning = img_wrist_lightning.astype(np.float32) / 255.0
-    # change image to torch and change the axis to (C, H, W)
-    img_front = torch.from_numpy(img_front).permute(0, 3, 1, 2)
-    img_wrist_thunder = torch.from_numpy(img_wrist_thunder).permute(0, 3, 1, 2)
-    img_wrist_lightning = torch.from_numpy(img_wrist_lightning).permute(0, 3, 1, 2)
-
+    # change image axis to (C, H, W)
+    img_front = np.moveaxis(img_front, -1, 1)
+    img_wrist_thunder = np.moveaxis(img_wrist_thunder, -1, 1)
+    img_wrist_lightning = np.moveaxis(img_wrist_lightning, -1, 1)
+    
     # Normalize the agent state
-    agent_pos = normalize_data(agent_pos, stats = stats['agent_state'])
+    agent_pos = normalize_data(agent_pos, stats = stats['agent_pos'])
+
+    # Change the observations to torch tensors
+    img_front = torch.tensor(img_front).float()
+    img_wrist_thunder = torch.tensor(img_wrist_thunder).float()
+    img_wrist_lightning = torch.tensor(img_wrist_lightning).float()
+    agent_pos = torch.tensor(agent_pos).float()
+
+    return {
+        'img_front': img_front,
+        'img_wrist_thunder': img_wrist_thunder,
+        'img_wrist_lightning': img_wrist_lightning,
+        'agent_pos': agent_pos,
+    }
 
 
 
