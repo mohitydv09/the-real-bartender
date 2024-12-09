@@ -198,11 +198,11 @@ def main():
     networks = load_network(config, device)
 
     observation_subscriber = ObservationSubscriber(obs_horizon=config['observation_horizon'])
-    rospy.spin()
-    time.sleep(2)
+    
+    
+    rate = rospy.Rate(10) # 10hz
 
-
-    while True:
+    while not rospy.is_shutdown():
         
         obs_dict = get_observations(observation_subscriber, config, stats)
         action = run_inference(obs_dict, networks, noise_scheduler, stats, config, device)
@@ -213,6 +213,8 @@ def main():
 
         if (): # checks if the task is completed
             break
+
+        rate.sleep()
 
 
 if __name__ == '__main__':

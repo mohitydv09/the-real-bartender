@@ -19,7 +19,7 @@ The queue is of size observation_horizon, which is a parameter in the config.yam
 '''
 
 class ObservationSubscriber:
-    def __init__(self, obs_horizon=10):
+    def __init__(self, obs_horizon):
         self.node_name = 'image_subscriber'
         rospy.init_node(self.node_name, anonymous=True)
 
