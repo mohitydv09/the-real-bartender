@@ -12,6 +12,7 @@ from diffusers.schedulers.scheduling_ddpm import DDPMScheduler
 from scripts.dataset import BartenderDataset
 from scripts.network import ConditionalUnet1D
 from scripts.vision_encoder import get_resnet, replace_bn_with_gn
+from scripts.get_observations import ObservationSubscriber
 
 
 def load_config(config_path):
