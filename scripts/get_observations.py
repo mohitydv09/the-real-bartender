@@ -55,6 +55,7 @@ class ObservationSubscriber:
         rospy.Subscriber('/thunder_gripper', Float32, self.thunder_gripper)
         rospy.Subscriber('/lightning_gripper', Float32, self.lightning_gripper)
 
+
     def thunder_wrist(self, msg):
         # Store the latest wrist image for thunder
         self.latest_img_wrist_thunder = np.frombuffer(msg.data, dtype=np.uint8).reshape(msg.height, msg.width, -1)
