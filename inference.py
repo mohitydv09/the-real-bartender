@@ -9,7 +9,7 @@ from tqdm import tqdm
 import subprocess
 import numpy as np
 import time
-
+from torchvision.transforms import Resize, ToTensor, ToPILImage
 
 from diffusers.training_utils import EMAModel
 from diffusers.optimization import get_scheduler
@@ -123,6 +123,38 @@ def get_observations(observation_object, config, stats):
     img_wrist_thunder = obs_dict['Images']['img_wrist_thunder']
     img_wrist_lightning = obs_dict['Images']['img_wrist_lightning']
     agent_pos = obs_dict['agent_state']
+
+    # Resize the images
+    def process_images(images, size=256):
+        resized_images = []
+        resize_transform = Resize(size)
+
+        for img in images:
+            # Convert to PIL Image for resizing
+            img_pil = Image.fromarray(img.astype(np.uint8))
+
+            # Resize the image
+            resized_pil = resize_transform(img_pil)
+
+            # Convert back to NumPy
+            resized_img = np.array(resized_pil, dtype=np.float32)
+
+            # Normalize image to [0, 1]
+            resized_img /= 255.0
+
+            # Add the processed image to the list
+            resized_images.append(resized_img)
+
+        # Stack resized images and change to (obs_horizon, C, H, W)
+        resized_images = np.stack(resized_images)
+        resized_images = np.moveaxis(resized_images, -1, 1)  # Move channel to (C, H, W)
+        return resized_images
+
+    img_front = process_images(img_front, size=256)
+    img_wrist_thunder = process_images(img_wrist_thunder, size=256)
+    img_wrist_lightning = process_images(img_wrist_lightning, size=256)
+    
+
 
     # Normalize the images
     img_front = img_front.astype(np.float32) / 255.0
