@@ -156,14 +156,14 @@ def get_observations(observation_object, config, stats):
     
 
 
-    # Normalize the images
-    img_front = img_front.astype(np.float32) / 255.0
-    img_wrist_thunder = img_wrist_thunder.astype(np.float32) / 255.0
-    img_wrist_lightning = img_wrist_lightning.astype(np.float32) / 255.0
-    # change image axis to (C, H, W)
-    img_front = np.moveaxis(img_front, -1, 1)
-    img_wrist_thunder = np.moveaxis(img_wrist_thunder, -1, 1)
-    img_wrist_lightning = np.moveaxis(img_wrist_lightning, -1, 1)
+    # # Normalize the images
+    # img_front = img_front.astype(np.float32) / 255.0
+    # img_wrist_thunder = img_wrist_thunder.astype(np.float32) / 255.0
+    # img_wrist_lightning = img_wrist_lightning.astype(np.float32) / 255.0
+    # # change image axis to (C, H, W)
+    # img_front = np.moveaxis(img_front, -1, 1)
+    # img_wrist_thunder = np.moveaxis(img_wrist_thunder, -1, 1)
+    # img_wrist_lightning = np.moveaxis(img_wrist_lightning, -1, 1)
     
     # Normalize the agent state
     agent_pos = normalize_data(agent_pos, stats = stats['agent_pos'])
