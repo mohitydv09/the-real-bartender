@@ -10,6 +10,7 @@ import subprocess
 import numpy as np
 import time
 from torchvision.transforms import Resize, ToTensor, ToPILImage
+import cv2
 
 from diffusers.training_utils import EMAModel
 from diffusers.optimization import get_scheduler
@@ -38,7 +39,7 @@ from Spark.TeleopMethods.UR.gripper import RobotiqGripper
 ROBOT_SPEED = 0.3           ## Speed of the robot in m/s
 ROBOT_ACCELERATION = 0.3    ## Acceleration of the robot in m/s^2
 ROBOT_BLEND = 0.001          ## Blend value for the robot
-ROBOT_VELOCITY_SCALE = 0.5  
+ROBOT_VELOCITY_SCALE = 1
 UR_TIME = 0.001
 UR_LOOKAHEAD_TIME = 0.05
 UR_GAIN = 200
@@ -124,46 +125,28 @@ def get_observations(observation_object, config, stats):
     img_wrist_lightning = obs_dict['Images']['img_wrist_lightning']
     agent_pos = obs_dict['agent_state']
 
+    # print(img_front.shape)
+    # print(img_wrist_thunder.shape)
+    # print(img_wrist_lightning.shape)
+
     # Resize the images
-    def process_images(images, size=256):
-        resized_images = []
-        resize_transform = Resize(size)
+    img_front = np.array([cv2.resize(img, (341, 256)) for img in img_front])
+    img_wrist_thunder = np.array([cv2.resize(img, (341, 256)) for img in img_wrist_thunder])
+    img_wrist_lightning = np.array([cv2.resize(img, (341, 256)) for img in img_wrist_lightning])
 
-        for img in images:
-            # Convert to PIL Image for resizing
-            img_pil = Image.fromarray(img.astype(np.uint8))
-
-            # Resize the image
-            resized_pil = resize_transform(img_pil)
-
-            # Convert back to NumPy
-            resized_img = np.array(resized_pil, dtype=np.float32)
-
-            # Normalize image to [0, 1]
-            resized_img /= 255.0
-
-            # Add the processed image to the list
-            resized_images.append(resized_img)
-
-        # Stack resized images and change to (obs_horizon, C, H, W)
-        resized_images = np.stack(resized_images)
-        resized_images = np.moveaxis(resized_images, -1, 1)  # Move channel to (C, H, W)
-        return resized_images
-
-    img_front = process_images(img_front, size=256)
-    img_wrist_thunder = process_images(img_wrist_thunder, size=256)
-    img_wrist_lightning = process_images(img_wrist_lightning, size=256)
-    
+    # print(img_front.shape)
+    # print(img_wrist_thunder.shape)
+    # print(img_wrist_lightning.shape)
 
 
-    # # Normalize the images
-    # img_front = img_front.astype(np.float32) / 255.0
-    # img_wrist_thunder = img_wrist_thunder.astype(np.float32) / 255.0
-    # img_wrist_lightning = img_wrist_lightning.astype(np.float32) / 255.0
-    # # change image axis to (C, H, W)
-    # img_front = np.moveaxis(img_front, -1, 1)
-    # img_wrist_thunder = np.moveaxis(img_wrist_thunder, -1, 1)
-    # img_wrist_lightning = np.moveaxis(img_wrist_lightning, -1, 1)
+    # Normalize the images
+    img_front = img_front.astype(np.float32) / 255.0
+    img_wrist_thunder = img_wrist_thunder.astype(np.float32) / 255.0
+    img_wrist_lightning = img_wrist_lightning.astype(np.float32) / 255.0
+    # change image axis to (C, H, W)
+    img_front = np.moveaxis(img_front, -1, 1)
+    img_wrist_thunder = np.moveaxis(img_wrist_thunder, -1, 1)
+    img_wrist_lightning = np.moveaxis(img_wrist_lightning, -1, 1)
     
     # Normalize the agent state
     agent_pos = normalize_data(agent_pos, stats = stats['agent_pos'])
@@ -271,19 +254,33 @@ def perform_action(URs: UR, action: List[List]) -> None:
     URs.servoJ("Lightning", (lightning_actions, 0.0, 0.0, UR_TIME, UR_LOOKAHEAD_TIME, UR_GAIN))
     URs.servoJ("Thunder", (thunder_actions, 0.0, 0.0, UR_TIME, UR_LOOKAHEAD_TIME, UR_GAIN))
 
-    if lightning_gripper > 50:
-        LIGHTNING_GRIPPER_OPEN = 1
-    if thunder_gripper > 50:
-        THUNDER_GRIPPER_OPEN = 1
+    # print("Lightning Gripper: ", lightning_gripper)
+    # print("Thunder Gripper: ", thunder_gripper)
 
-    if LIGHTNING_GRIPPER_OPEN:
-        URs.get_gripper("Lightning").set(int(255))
-    else:
-        URs.get_gripper("Lightning").set(int(0))
-    if THUNDER_GRIPPER_OPEN:
-        URs.get_gripper("Thunder").set(int(255))
-    else:
-        URs.get_gripper("Thunder").set(int(0))
+    # if lightning_gripper > 50:
+    #     URs.get_gripper("Lightning").set(int(255))
+    # else:
+    #     URs.get_gripper("Lightning").set(int(0))
+    # if thunder_gripper > 50:
+    #     URs.get_gripper("Thunder").set(int(255))
+    # else:
+    #     URs.get_gripper("Thunder").set(int(0))
+    URs.get_gripper("Lightning").set(int(lightning_gripper))
+    URs.get_gripper("Thunder").set(int(thunder_gripper))
+
+    # if lightning_gripper > 50:
+    #     LIGHTNING_GRIPPER_OPEN = 1
+    # if thunder_gripper > 50:
+    #     THUNDER_GRIPPER_OPEN = 1
+
+    # if LIGHTNING_GRIPPER_OPEN:
+    #     URs.get_gripper("Lightning").set(int(255))
+    # else:
+    #     URs.get_gripper("Lightning").set(int(0))
+    # if THUNDER_GRIPPER_OPEN:
+    #     URs.get_gripper("Thunder").set(int(255))
+    # else:
+    #     URs.get_gripper("Thunder").set(int(0))
     # URs.get_gripper("Thunder").set(int(thunder_gripper))
 
 
@@ -294,7 +291,7 @@ def main():
     device = config['device']
 
     ## Load dataset Stats
-    stats = np.load("dataset/transformed_data/uncork_v2_stats.npy", allow_pickle=True).item()
+    stats = np.load("dataset/uncork_v2_stats.npy", allow_pickle=True).item()
     noise_scheduler = DDPMScheduler(
         num_train_timesteps=config['num_diffusion_iters'],
         beta_schedule='squaredcos_cap_v2',
@@ -312,13 +309,13 @@ def main():
     URs = init_robot()
 
     ## Move the robot to the home position
-    URs.moveJ("Thunder", THUNDER_HOME, asynchronous=False)
-    URs.moveJ("Lightning", LIGHTNING_HOME, asynchronous=False)
+    URs.moveJ("Thunder", (THUNDER_HOME, ROBOT_SPEED, ROBOT_ACCELERATION, False))
+    URs.moveJ("Lightning", (LIGHTNING_HOME, ROBOT_SPEED, ROBOT_ACCELERATION, False))
 
     input("Press Enter to Move Robot to Home Position...")
     action_buffer = deque(maxlen=config['action_horizon'])
     
-    RUNNING_TIME = 0.4
+    RUNNING_TIME = 0.1
     try:
         while True:
             start_time = time.time()

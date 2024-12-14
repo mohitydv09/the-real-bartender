@@ -3,7 +3,7 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 
-episode = np.load("/home/rpmdt05/Code/the-real-bartender/dataset/raw_data/transforms_98.npy", allow_pickle=True).item()
+episode = np.load("/home/rpmdt05/Code/the-real-bartender/dataset/raw_data/transforms_231.npy", allow_pickle=True).item()
 
 # print(episode.keys())
 # lightning_angle = np.zeros((len(episode), 6))
@@ -28,7 +28,7 @@ episode = np.load("/home/rpmdt05/Code/the-real-bartender/dataset/raw_data/transf
 
 
 for frame in episode:
-    image = episode[frame]["camera_both_front"]
+    image = episode[frame]["camera_lightning_wrist"]
     # print(type(image))
     # print(image.shape)
     image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
