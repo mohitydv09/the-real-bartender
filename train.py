@@ -82,6 +82,8 @@ def train_epoch(dataloader,
     
     return np.mean(epoch_loss)
 
+def make_sampler(episode_ends: np.ndarray, len_dataset : int):
+    pass
 
 def train(config):
     device = config['device']
@@ -97,6 +99,10 @@ def train(config):
         action_horizon=config['action_horizon'],
     )
     stats = dataset.stats
+
+    len_dataset = len(dataset)
+    episode_ends = dataset.episode_ends ## Not there right Now.
+    sampler = make_sampler(episode_ends, len_dataset)
 
     dataloader = torch.utils.data.DataLoader(
         dataset=dataset,
@@ -190,4 +196,8 @@ def main():
     train(config)
 
 if __name__ == '__main__':
-    main()
+    # main()
+    episode_ends = np.array[50,100]
+    len_dataset = 100
+    sampler = make_sampler(episode_ends, len_dataset)
+

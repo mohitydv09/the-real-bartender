@@ -127,7 +127,7 @@ class ObservationSubscriber:
 
 if __name__ == '__main__':
     try:
-        image_subscriber = ObservationSubscriber(obs_horizon=10)  # You can set the horizon to whatever value you want
+        image_subscriber = ObservationSubscriber(obs_horizon=5)  # You can set the horizon to whatever value you want
         rospy.spin()
     except rospy.ROSInterruptException:
         rospy.logerr("ROS node terminated.")

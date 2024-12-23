@@ -1,12 +1,13 @@
+"""
+This code is adapted from the original Diffusion Policy codebase with minor modifications to align with our custom dataset.  
+Original codebase: https://diffusion-policy.cs.columbia.edu/
+"""
+
 from re import sub
 import zarr
 import torch
 import numpy as np
 
-""""
-This code is borrowed from the original diffusion policy codebase.
-Link: https://diffusion-policy.cs.columbia.edu/
-"""
 
 ## Helper Functions
 def create_sample_indices(

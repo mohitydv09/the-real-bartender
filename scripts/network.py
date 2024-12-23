@@ -3,24 +3,21 @@ import math
 import torch
 import torch.nn as nn
 
-""""
-This code is borrowed from the original diffusion policy codebase.
+"""
+This code is adapted from the original Diffusion Policy codebase, defining a 
+conditional U-Net as the noise prediction network for our diffusion pipeline. 
 Link: https://diffusion-policy.cs.columbia.edu/
+
+The architecture, `ConditionalUnet1D`, includes the following components:
+- `SinusoidalPosEmb`: Positional encoding for the diffusion iteration `k`.
+- `Downsample1d`: Strided convolution to reduce temporal resolution.
+- `Upsample1d`: Transposed convolution to increase temporal resolution.
+- `Conv1dBlock`: A block consisting of `Conv1d` → `GroupNorm` → `Mish`.
+- `ConditionalResidualBlock1D`: Processes two inputs, `x` and `cond`.
+  - `x` passes through two stacked `Conv1dBlock` layers with a residual connection.
+  - `cond` is applied to `x` using [FiLM](https://arxiv.org/abs/1709.07871) conditioning.
 """
 
-#@markdown ### **Network**
-#@markdown
-#@markdown Defines a 1D UNet architecture `ConditionalUnet1D`
-#@markdown as the noies prediction network
-#@markdown
-#@markdown Components
-#@markdown - `SinusoidalPosEmb` Positional encoding for the diffusion iteration k
-#@markdown - `Downsample1d` Strided convolution to reduce temporal resolution
-#@markdown - `Upsample1d` Transposed convolution to increase temporal resolution
-#@markdown - `Conv1dBlock` Conv1d --> GroupNorm --> Mish
-#@markdown - `ConditionalResidualBlock1D` Takes two inputs `x` and `cond`. \
-#@markdown `x` is passed through 2 `Conv1dBlock` stacked together with residual connection.
-#@markdown `cond` is applied to `x` with [FiLM](https://arxiv.org/abs/1709.07871) conditioning.
 
 class SinusoidalPosEmb(nn.Module):
     def __init__(self, dim):

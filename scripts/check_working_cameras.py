@@ -1,3 +1,7 @@
+"""
+This script verifies the connectivity and functionality of all cameras in the real robot setup, ensuring they are operational.
+"""
+
 import pyrealsense2 as rs
 import cv2
 import numpy as np

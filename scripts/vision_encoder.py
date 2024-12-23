@@ -3,16 +3,17 @@ import torch
 import torch.nn as nn
 import torchvision
 
-""""
-This code is borrowed from the original diffusion policy codebase.
-Link: https://diffusion-policy.cs.columbia.edu/
 """
+This code is adapted from the original Diffusion Policy codebase.
+Link: https://diffusion-policy.cs.columbia.edu/
 
-#@markdown ### **Vision Encoder**
-#@markdown
-#@markdown Defines helper functions:
-#@markdown - `get_resnet` to initialize standard ResNet vision encoder
-#@markdown - `replace_bn_with_gn` to replace all BatchNorm layers with GroupNorm
+
+### **Vision Encoder**
+
+Defines helper functions:
+- `get_resnet`: Initializes a standard ResNet vision encoder.
+- `replace_bn_with_gn`: Replaces all BatchNorm layers with GroupNorm.
+"""
 
 def get_resnet(name:str, weights=None, **kwargs) -> nn.Module:
     """

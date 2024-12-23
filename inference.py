@@ -1,3 +1,11 @@
+"""
+This script runs the diffusion policy on the real-world robot. It collects 
+observations of the environment and the robot's states, uses the diffusion 
+policy to predict the next set of actions, and commands the robot to perform 
+these actions. The process continues in a loop, updating the actions and states 
+repeatedly.
+"""
+
 from typing import List
 import os
 import sys
@@ -39,9 +47,9 @@ from Spark.TeleopMethods.UR.gripper import RobotiqGripper
 ROBOT_SPEED = 0.3           ## Speed of the robot in m/s
 ROBOT_ACCELERATION = 0.3    ## Acceleration of the robot in m/s^2
 ROBOT_BLEND = 0.001          ## Blend value for the robot
-ROBOT_VELOCITY_SCALE = 1
-UR_TIME = 0.001
-UR_LOOKAHEAD_TIME = 0.05
+ROBOT_VELOCITY_SCALE = 0.8
+UR_TIME = 0.01
+UR_LOOKAHEAD_TIME = 0.2
 UR_GAIN = 200
 
 
@@ -120,24 +128,15 @@ def get_observations(observation_object, config, stats):
     
     obs_dict = observation_object.get_last_n_observations()
 
-    img_front = obs_dict['Images']['img_front']
-    img_wrist_thunder = obs_dict['Images']['img_wrist_thunder']
-    img_wrist_lightning = obs_dict['Images']['img_wrist_lightning']
-    agent_pos = obs_dict['agent_state']
-
-    # print(img_front.shape)
-    # print(img_wrist_thunder.shape)
-    # print(img_wrist_lightning.shape)
+    img_front = obs_dict['Images']['img_front'][[0,-1],...]
+    img_wrist_thunder = obs_dict['Images']['img_wrist_thunder'][[0,-1],...]
+    img_wrist_lightning = obs_dict['Images']['img_wrist_lightning'][[0,-1],...]
+    agent_pos = obs_dict['agent_state'][[0,-1],...]
 
     # Resize the images
     img_front = np.array([cv2.resize(img, (341, 256)) for img in img_front])
     img_wrist_thunder = np.array([cv2.resize(img, (341, 256)) for img in img_wrist_thunder])
     img_wrist_lightning = np.array([cv2.resize(img, (341, 256)) for img in img_wrist_lightning])
-
-    # print(img_front.shape)
-    # print(img_wrist_thunder.shape)
-    # print(img_wrist_lightning.shape)
-
 
     # Normalize the images
     img_front = img_front.astype(np.float32) / 255.0
@@ -237,7 +236,7 @@ def init_robot():
     for arm in arms:
         URs.init_dashboard(arm)
         URs.init_arm(arm, enable_control=enable_control)
-    return URs
+    return URs, lightning_io, thunder_io
 
 def perform_action(URs: UR, action: List[List]) -> None:
     """
@@ -291,7 +290,7 @@ def main():
     device = config['device']
 
     ## Load dataset Stats
-    stats = np.load("dataset/uncork_v2_stats.npy", allow_pickle=True).item()
+    stats = np.load("dataset/uncork_v5_stats.npy", allow_pickle=True).item()
     noise_scheduler = DDPMScheduler(
         num_train_timesteps=config['num_diffusion_iters'],
         beta_schedule='squaredcos_cap_v2',
@@ -302,15 +301,18 @@ def main():
     networks = load_network(config, device)
 
     ## Subscribe to the ROS topics
-    observation_subscriber = ObservationSubscriber(obs_horizon=config['observation_horizon'])
+    observation_subscriber = ObservationSubscriber(5)
     time.sleep(2)
 
     ## Initialize the robot
-    URs = init_robot()
-
+    URs, lightning_io, thunder_io = init_robot()
+    lightning_io.setSpeedSlider(1)
+    thunder_io.setSpeedSlider(1)
     ## Move the robot to the home position
-    URs.moveJ("Thunder", (THUNDER_HOME, ROBOT_SPEED, ROBOT_ACCELERATION, False))
+    URs.moveJ("Thunder", (THUNDER_HOME, ROBOT_SPEED, ROBOT_ACCELERATION, True))
     URs.moveJ("Lightning", (LIGHTNING_HOME, ROBOT_SPEED, ROBOT_ACCELERATION, False))
+    lightning_io.setSpeedSlider(ROBOT_VELOCITY_SCALE)
+    thunder_io.setSpeedSlider(ROBOT_VELOCITY_SCALE)
 
     input("Press Enter to Move Robot to Home Position...")
     action_buffer = deque(maxlen=config['action_horizon'])
@@ -320,12 +322,15 @@ def main():
         while True:
             start_time = time.time()
             if (len(action_buffer) == 0):
+                start_time_ = time.time()
                 obs_dict = get_observations(observation_subscriber, config, stats)
                 action = run_inference(obs_dict, networks, noise_scheduler, stats, config, device)
                 action_buffer.extend(action)
+                # print("DP inference time: ", time.time() - start_time_)
             ## Move the robot to the first action in the buffer
             next_action = action_buffer.popleft()
             perform_action(URs, next_action)
+            # print("Time for perfoming action: ", time.time() - start_time)
             time.sleep(max(0, RUNNING_TIME - (time.time() - start_time)))
     except KeyboardInterrupt:
         print("Exiting the program...")

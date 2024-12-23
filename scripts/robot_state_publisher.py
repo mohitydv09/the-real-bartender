@@ -1,3 +1,9 @@
+"""
+This script publishes the required messages to ROS topics for collecting 
+real-world observations and robot states while working with diffusion policies.
+"""
+
+
 import rospy
 import sys
 import numpy as np

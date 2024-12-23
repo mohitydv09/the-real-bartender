@@ -1,98 +1,13 @@
+"""
+This script experiments with a custom dataloader to replicate the functionality demonstrated in the diffusion policy tutorial notebooks.
+"""
+
 import os
 import numpy as np
 import torch
 from torch.utils.data import Dataset, DataLoader
 import glob
 import cv2
-
-
-# transform the dataset
-
-# class TransformData:
-#     def __init__(self, original_data_folder):
-#         # Create the transformed dataset directory
-#         self.transformed_data_folder = 'transformed_dataset'
-#         os.makedirs(self.transformed_data_folder, exist_ok=True)
-
-#         # Read in the original dataset
-#         self.original_data_folder = original_data_folder
-#         npy_file_paths = sorted(glob.glob(os.path.join(original_data_folder, "transforms_*.npy")))
-#         self.episodes = [np.load(path, allow_pickle=True).item() for path in npy_file_paths]
-
-#         # Calculate episode lengths and the cumulative episode ends
-#         self.episode_lengths = [len(ep) for ep in self.episodes]
-#         self.episode_ends = np.cumsum(self.episode_lengths) - 1
-
-#         # Create directories for each topic (camera images, states, and actions)
-#         self.topics = [
-#             'camera_thunder_wrist', 'camera_lightning_wrist', 'camera_both_front',
-#             'lightning_gripper', 'lightning_angle', 'thunder_gripper', 'thunder_angle',
-#             'spark_lightning_angle', 'spark_thunder_angle'
-#         ]
-#         for topic in self.topics:
-#             os.makedirs(os.path.join(self.transformed_data_folder, topic), exist_ok=True)
-
-#         # Process and store data
-#         self._transform_and_store_data()
-
-#         # Save episode ends as a numpy file
-#         np.save(os.path.join(self.transformed_data_folder, 'episode_ends.npy'), self.episode_ends)
-
-
-#     def _transform_and_store_data(self):
-#         # Initialize a counter for naming the files
-#         frame_counter = 0
-
-#         # Process each episode and its frames
-#         for episode in self.episodes:
-#             for frame_idx, frame_data in episode.items():
-#                 # Save the data for each topic as individual .npy files
-#                 # Process and save camera images
-#                 self._save_data('camera_thunder_wrist', frame_data['camera_thunder_wrist'], frame_counter)
-#                 self._save_data('camera_lightning_wrist', frame_data['camera_lightning_wrist'], frame_counter)
-#                 self._save_data('camera_both_front', frame_data['camera_both_front'], frame_counter)
-
-#                 # Process and save states
-#                 self._save_data('lightning_gripper', frame_data['lightning_gripper'], frame_counter)
-#                 self._save_data('lightning_angle', frame_data['lightning_angle'], frame_counter)
-#                 self._save_data('thunder_gripper', frame_data['thunder_gripper'], frame_counter)
-#                 self._save_data('thunder_angle', frame_data['thunder_angle'], frame_counter)
-
-#                 # Process and save actions
-#                 self._save_data('spark_lightning_angle', frame_data['spark_lightning_angle'], frame_counter)
-#                 self._save_data('spark_thunder_angle', frame_data['spark_thunder_angle'], frame_counter)
-
-#                 # Increment the frame counter
-#                 frame_counter += 1
-
-#     def _save_data(self, topic, data, frame_counter):
-#         """Helper function to save data into the respective folder"""
-#         topic_folder = os.path.join(self.transformed_data_folder, topic)
-#         np.save(os.path.join(topic_folder, f'{frame_counter}.npy'), data)
-
-# # Example usage:
-# original_data_folder = '/home/rpmdt05/Code/the-real-bartender/dataset'  # Replace with your original dataset path
-# transformer = TransformData(original_data_folder)
-# print(transformer.episode_ends)
-
-
-# transformed_data_folder = 'transformed_dataset'  # Path to the transformed dataset folder
-
-# image_folder = os.path.join(transformed_data_folder, 'camera_both_front')
-# image_files = sorted(
-#     glob.glob(os.path.join(image_folder, "*.npy")),
-#     key=lambda x: int(os.path.splitext(os.path.basename(x))[0])  # Extract the numeric part
-# )
-# print(image_files)
-# images = [np.load(file) for file in image_files]
-
-# for image in images:
-#     cv2.imshow('image', image)
-#     if cv2.waitKey(100) & 0xFF == ord('q'):
-#         break
-# cv2.destroyAllWindows()
-
-
 
 
 class BartenderDataset(Dataset):

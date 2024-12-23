@@ -12,7 +12,7 @@ epochs: 1000
 num_diffusion_iters: 100
 
 use_pretrained_model: True
-model_path: "models/uncork_188_897.pt"
+model_path: "models/uncork_v5.pt"
 dataset_path: "dataset/transformed_data/uncork_v2.zarr"
 
 device: "cuda"
