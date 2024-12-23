@@ -20,10 +20,8 @@ cd the-real-bartender
 
 Create a new mamba environment
 ```shell
-conda env create -f environment.yml
+mamba env create -f environment.yml
 ```
-
-### Dataset
 
 ### Dataset
 
