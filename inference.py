@@ -282,8 +282,6 @@ def perform_action(URs: UR, action: List[List]) -> None:
     #     URs.get_gripper("Thunder").set(int(0))
     # URs.get_gripper("Thunder").set(int(thunder_gripper))
 
-
-
 def main():
     ## Load Config and set device
     config = load_config('config_.yaml')
