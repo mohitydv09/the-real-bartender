@@ -1,19 +1,4 @@
-import zarr 
-import os
 import numpy as np
-
-# dataset_path = 'uncork_v2.zarr'
-
-# dataset_root = zarr.open(dataset_path, mode='r')
-
-# data_set_path = 'data_mohit'
-# print(dataset_root.tree())
-# N = len(os.listdir('raw_data'))
-# states = np.zeros((N, 14))
-# actions = np.zeros((N, 14))
-# for filename in os.listdir("raw_data"):
-#     data_ = np.load(os.path.join('raw_data', filename))
-
 
 def get_data_stats(data):
     data = data.reshape(-1,data.shape[-1])
