@@ -1,13 +1,21 @@
 <p align="center">
-  <h1 align="center">The Real Bartender</h1>
+  <h1 align="center">The-Bartender</h1>
 </p>
 <p align="center">
   <h3 align="center">Course Project for CSCI 5980: Deep Learning for Robot Manipulation</h3>
 </p>
 
-<img src="assets/environment.jpeg">
 
-<!-- TODO: Add project website -->
+[![Video Title](assets/bartender.gif)](https://www.youtube.com/watch?v=HdP3ZrLVwHQ)
+
+<p align="center">
+Link to High Quality YouTube Video: <a href="https://www.youtube.com/watch?v=HdP3ZrLVwHQ" >https://www.youtube.com/watch?v=HdP3ZrLVwHQ</a>.
+</p>
+
+
+## For detailed discussions, additional videos, and comprehensive evaluations, please visit our [Project Webpage](https://dent-femur-218.notion.site/the-bartender).
+
+## Code Setup
 
 ### Environment Setup
 This code was developed and tested with Python 3.9
@@ -62,7 +70,8 @@ To test the diffusion policy after training your model:
 
 3. Finally, read and modify the `inference.py` script to run inference using your trained model on your real robot setup.
 
+### Acknowledgement
 
+This work was developed using **Diffusion Policy**, and portions of the code were adapted from the original [Diffusion Policy repository](https://github.com/real-stanford/diffusion_policy).
 
-
-
+We would also like to express our gratitude to [Adam Imdieke](https://github.com/AdamImd) for providing the teleoperation setup, which was instrumental in collecting our demonstration data.
