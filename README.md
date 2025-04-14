@@ -1,5 +1,5 @@
 <p align="center">
-  <h1 align="center">The-Bartender</h1>
+  <h1 align="center">The-"Real"-Bartender</h1>
 </p>
 <p align="center">
   <h3 align="center">Course Project for CSCI 5980: Deep Learning for Robot Manipulation</h3>
